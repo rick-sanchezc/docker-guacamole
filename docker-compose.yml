@@ -1,0 +1,74 @@
+version: '2.0'
+
+networks:
+  guacnetwork_compose:
+    driver: bridge
+
+services:
+  # guacd
+  guacd:
+    container_name: guacd_compose
+    image: guacamole/guacd:latest
+    networks:
+      guacnetwork_compose:
+    restart: always
+    volumes:
+    - /opt/guacdrive:/drive:Z
+    - /opt/guacrecord:/record:Z
+
+  postgres:
+    container_name: postgres_guacamole_compose
+    #    image: postgres:13.4-buster
+    image: postgres:latest
+    networks:
+      guacnetwork_compose:
+    restart: always
+    volumes:
+    - /opt/dbinit:/docker-entrypoint-initdb.d:Z
+    - /opt/dbdata:/var/lib/postgresql/data:Z
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_PASSWORD: 'SuperSecertPw0rD'
+      POSTGRES_USER: guacamole_user
+      POSTGRES_INITDB_ARGS: --auth-host=md5
+
+  guacamole:
+    container_name: guacamole_compose
+    image: guacamole/guacamole:latest
+    networks:
+      guacnetwork_compose:
+    restart: always
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRES_DATABASE: guacamole_db
+      POSTGRES_HOSTNAME: postgres
+      POSTGRES_PASSWORD: 'SuperSecertPw0rD'
+      POSTGRES_USER: guacamole_user 
+      LDAP_HOSTNAME: '1.1.1.1'
+      LDAP_SEARCH_BIND_DN: CN=svcguacbind,OU=core-svcaccounts,DC=the-loop,DC=io
+      LDAP_SEARCH_BIND_PASSWORD: 'asdfasdfadsfdsa'
+      LDAP_USER_BASE_DN: OU=core-svcaccounts,DC=the-loop,DC=io
+    ports:
+    - 8080/tcp
+    links:
+    - guacd
+    depends_on:
+    - guacd
+    - postgres
+
+  nginx:
+   container_name: nginx_guacamole_compose
+   image: nginx:latest
+   networks:
+     guacnetwork_compose:
+   restart: always
+   volumes:
+   - /opt/nginx/ssl/self.cert:/etc/nginx/ssl/self.cert:ro
+   - /opt/nginx/ssl/self-ssl.key:/etc/nginx/ssl/self-ssl.key:ro
+   - /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+   - /opt/nginx/defaultssl.conf:/etc/nginx/conf.d/defaultssl.conf:ro
+   ports:
+   - 443:443
+   links:
+   - guacamole
+   command: /bin/bash -c "nginx -g 'daemon off;'"
