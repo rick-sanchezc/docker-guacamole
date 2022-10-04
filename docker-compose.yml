@@ -48,6 +48,7 @@ services:
       LDAP_SEARCH_BIND_DN: CN=svcguacbind,OU=core-svcaccounts,DC=the-loop,DC=io
       LDAP_SEARCH_BIND_PASSWORD: 'asdfasdfadsfdsa'
       LDAP_USER_BASE_DN: OU=core-svcaccounts,DC=the-loop,DC=io
+      #TOTP_ENABLED: 'true'
     ports:
     - 8080/tcp
     links:
